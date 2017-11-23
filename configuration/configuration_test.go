@@ -30,23 +30,24 @@ import (
 
 var configuration Configuration
 
-func setup(osArgs []string) {
+func setup(osArgs []string) error {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
 	os.Args = osArgs
 	cliArgs, err := cliparser.ParseCliArguments()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	logger := logger.CreateQuietLogger()
 
 	configuration, err = GetConfiguration(cliArgs, &logger)
-
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	return err
 }
 
 func TestSpecificationFileURL(t *testing.T) {
@@ -76,6 +77,11 @@ func TestOverrideForMFADecision(t *testing.T) {
 	assert.Equal(t, true, *configuration.DefaultDecisionForMFA)
 }
 
+func TestNoMFADecision(t *testing.T) {
+	setup([]string{"cmd", "--mode=validate_offline", "--template=some_path" })
+	assert.Equal(t, (*bool)(nil), configuration.DefaultDecisionForMFA)
+}
+
 func TestGettingDefaultRegionFromConfigurationFile(t *testing.T) {
 	setup([]string{"cmd", "--mode=validate_offline", "--template=some_path", "--config=test_resources/test_config.yaml"})
 	assert.Equal(t, "us-west-2", configuration.DefaultRegion)
@@ -94,6 +100,26 @@ func TestGettingDurationForMFAFromConfigurationFile(t *testing.T) {
 func TestCLIOverrideForDurationForMFA(t *testing.T) {
 	setup([]string{"cmd", "--mode=validate_offline", "--template=some_path", "--config=test_resources/test_config.yaml", "--duration=1600"})
 	assert.Equal(t, int64(1600), *configuration.DefaultDurationForMFA)
+}
+
+func TestNoDurationForMFA(t *testing.T) {
+	setup([]string{"cmd", "--mode=validate_offline", "--template=some_path" })
+	assert.Equal(t, (*int64)(nil), configuration.DefaultDurationForMFA)
+}
+
+func TestTooBigDurationForMFA(t *testing.T) {
+	err := setup([]string{"cmd", "--mode=validate_offline", "--template=some_path", "--duration=600000000"})
+	assert.NotNil(t, err)
+}
+
+func TestTooSmallDurationForMFA(t *testing.T) {
+	err := setup([]string{"cmd", "--mode=validate_offline", "--template=some_path", "--duration=-1"})
+	assert.NotNil(t, err)
+}
+
+func TestZeroDurationForMFA(t *testing.T) {
+	setup([]string{"cmd", "--mode=validate_offline", "--template=some_path", "--duration=0"})
+	assert.Equal(t, (*int64)(nil), configuration.DefaultDurationForMFA)
 }
 
 func TestGettingProfileFromConfigurationFile(t *testing.T) {

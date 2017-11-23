@@ -93,10 +93,10 @@ func postProcessing(config *Configuration, cliArguments cliparser.CliArguments, 
 	if *cliArguments.Profile != "" {
 		config.DefaultProfile = *cliArguments.Profile
 	}
-	if *cliArguments.MFA != *config.DefaultDecisionForMFA {
+	if config.DefaultDecisionForMFA != nil && *cliArguments.MFA != *config.DefaultDecisionForMFA {
 		config.DefaultDecisionForMFA = cliArguments.MFA
 	}
-	if *cliArguments.DurationForMFA > 0 {
+	if cliArguments.DurationForMFA != nil && *cliArguments.DurationForMFA > 0 {
 		config.DefaultDurationForMFA = cliArguments.DurationForMFA
 	}
 }
